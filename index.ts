@@ -37,7 +37,9 @@ import {
   wrapTryCatch
 } from "./src/utils";
 import { getQueue, setQueue } from "./src/queue";
-import { readFile } from 'fs';
+import { readFileSync } from 'fs';
+import tls from 'tls';
+import { QueueOptions } from "bull";
 
 export const vorpal = new Vorpal();
 vorpal.localStorage("bull-repl-default");
@@ -55,19 +57,21 @@ vorpal
     "-r, --redis <redis>",
     "redis url in format: redis://[:password@]host[:port][/db-number][?option=value]; default redis://localhost:6379"
   )
-  .options("--tls", "Use TLS")
-  .options("--ca <caFilePath>", "Certificate Authority file path")
+  .option("--tls", "Use TLS")
+  .option("--ca <caFilePath>", "Certificate Authority file path")
   .action(
     wrapTryCatch(async ({ queue: name, options }: ConnectParams) => {
       const url = options.redis
         ? `redis://${options.redis.replace(/^redis:\/\//, "")}`
         : "redis://localhost:6379";
-      const connOpts = { prefix: options.prefix || "bull" };
+      const prefix = options.prefix || "bull"
+      const connOpts: QueueOptions = { prefix };
       if (options.tls) {
-        connOpts.tls = {};
+        const tlsOpts: tls.ConnectionOptions = {};
         if (options.ca) {
-          connOts.tls.ca = await readFile(options.ca);
+           tlsOpts.ca = readFileSync(options.ca);
         }
+        connOpts.redis = { tls: tlsOpts };
       }
       await setQueue(name, url, connOpts);
       localStorage.setItem(

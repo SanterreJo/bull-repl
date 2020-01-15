@@ -15,6 +15,8 @@ export type ConnectParams = {
   options: {
     prefix?: string;
     redis?: string;
+    tls?: boolean;
+    ca?: string;
   };
 };
 
