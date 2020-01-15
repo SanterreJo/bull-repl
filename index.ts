@@ -37,6 +37,7 @@ import {
   wrapTryCatch
 } from "./src/utils";
 import { getQueue, setQueue } from "./src/queue";
+import { readFile } from 'fs';
 
 export const vorpal = new Vorpal();
 vorpal.localStorage("bull-repl-default");
@@ -54,13 +55,21 @@ vorpal
     "-r, --redis <redis>",
     "redis url in format: redis://[:password@]host[:port][/db-number][?option=value]; default redis://localhost:6379"
   )
+  .options("--tls", "Use TLS")
+  .options("--ca <caFilePath>", "Certificate Authority file path")
   .action(
     wrapTryCatch(async ({ queue: name, options }: ConnectParams) => {
       const url = options.redis
         ? `redis://${options.redis.replace(/^redis:\/\//, "")}`
         : "redis://localhost:6379";
-      const prefix = options.prefix || "bull";
-      await setQueue(name, url, { prefix });
+      const connOpts = { prefix: options.prefix || "bull" };
+      if (options.tls) {
+        connOpts.tls = {};
+        if (options.ca) {
+          connOts.tls.ca = await readFile(options.ca);
+        }
+      }
+      await setQueue(name, url, connOpts);
       localStorage.setItem(
         LAST_SAVED_CONNECTION_NAME,
         JSON.stringify({ name, url, prefix })
